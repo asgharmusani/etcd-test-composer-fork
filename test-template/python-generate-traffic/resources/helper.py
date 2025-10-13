@@ -19,6 +19,13 @@ def put_request(c, key, value):
         return True, None
     except Exception as e:
         return False, e
+    
+def put_request_lease(c, key, value, ttl):
+    try:
+        c.put(key, value, lease=ttl)
+        return True, None
+    except Exception as e:
+        return False, e
 
 def get_request(c, key):
     try:
