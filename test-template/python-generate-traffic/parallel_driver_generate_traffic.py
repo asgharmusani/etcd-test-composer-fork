@@ -45,7 +45,7 @@ def simulate_traffic():
 
     print(f"Client: traffic simulated!")
     return kvs
-    
+
 
 def validate_puts(kvs):
     """
@@ -72,9 +72,45 @@ def validate_puts(kvs):
     return True, None
 
 
+def update_keys(kvs):
+    """
+    Takes a list of existing key-value pairs and attempts to update each key with a new value.
+    Returns:
+        A dictionary of {key: new_value} for all updates that were successful.
+    """
+    client = helper.connect_to_host()
+    successful_updates = []
+    if not kvs:
+        return successful_updates
+    print("Client: Starting to update keys with new values...")
+    for kv in kvs:
+        key, old_value = kv[0], kv[1]
+        # Generate a new value that is guaranteed to be different from the old one.
+        new_value = helper.generate_random_string()
+        while new_value == old_value:
+            new_value = helper.generate_random_string()
+
+        success, error = helper.put_request(client, key, new_value)
+        sometimes(success, "Client can make successful update (put) requests", {"error": error})
+
+        if success:
+            successful_updates.append((key, new_value))
+            print(f"Client: Successfully updated key '{key}' from '{old_value}' to '{new_value}'")
+        else:
+            print(f"Client: Failed to update key '{key}'. Error: {error}")
+
+    return successful_updates
+
+
 if __name__ == "__main__":
     kvs = simulate_traffic()
     values_stay_consistent, mismatch = validate_puts(kvs)
 
     # Antithesis Assertion: for all successful kv put requests, values from get requests should match for their respective keys 
     always(values_stay_consistent, "Database key values stay consistent", {"mismatch":mismatch})
+
+    successful_updates = update_keys(kvs)
+    updated_kvs_are_same, mismatch = validate_puts(successful_updates)
+
+    # Antithesis Assertion: for all successful kv put requests, values from get requests should match for their respective keys 
+    always(updated_kvs_are_same, "Database key values stay consistent after update", {"mismatch":mismatch})
